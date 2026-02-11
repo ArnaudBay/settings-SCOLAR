@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { FiPlus, FiEdit2, FiTrash2, FiUsers } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2,  } from 'react-icons/fi';
+//import { FaGraduationCap, } from 'react-icons/fa'
 import type { Classe } from '../../types';
+import classIcon from '../../assets/images/class.svg'
 
 export const Classes = () => {
   const [classes] = useState<Classe[]>([
     { id: '1', nom: '6ème A', description: 'Classe de 6ème', filiereId: '1', effectif: 25 },
     { id: '2', nom: '5ème B', description: 'Classe de 5ème', filiereId: '1', effectif: 28 },
+    {id:'3', nom:"Première année", description:"Première année de l'enseignement secondaire", filiereId:'2', effectif:15},
   ]);
 
   return (
@@ -49,7 +52,8 @@ export const Classes = () => {
               <tr key={classe.id} className="hover:bg-slate-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center gap-2">
-                    <FiUsers className="w-4 h-4 text-slate-400" />
+                    <img className="w-4 h-4 text-slate-400" src={classIcon} alt="Class Icon" />
+                    
                     <span className="text-sm font-medium text-slate-900">{classe.nom}</span>
                   </div>
                 </td>

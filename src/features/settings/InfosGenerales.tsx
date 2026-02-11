@@ -7,10 +7,10 @@ const etablissementSchema = z.object({
   nom: z.string().min(1, 'Le nom est requis'),
   adresse: z.string().min(1, 'L\'adresse est requise'),
   ville: z.string().min(1, 'La ville est requise'),
-  codePostal: z.string().min(1, 'Le code postal est requis'),
+  //codePostal: z.string().min(1, 'Le code postal est requis'),
   telephone: z.string().min(1, 'Le téléphone est requis'),
-  email: z.string().email('Email invalide'),
-  siteWeb: z.string().url('URL invalide').optional().or(z.literal('')),
+  email: z.string().email({message:'Email invalide'}),
+  siteWeb: z.string().url({message:'URL invalide'}).optional().or(z.literal('')),
   description: z.string().optional(),
 });
 
@@ -27,7 +27,7 @@ export const InfosGenerales = () => {
       nom: '',
       adresse: '',
       ville: '',
-      codePostal: '',
+      //codePostal: '',
       telephone: '',
       email: '',
       siteWeb: '',
@@ -60,7 +60,7 @@ export const InfosGenerales = () => {
             </div>
             <div className="flex-1">
               <p className="text-sm text-slate-600 mb-2">Logo de l'établissement</p>
-              <p className="text-xs text-slate-500 mb-3">PNG, JPEG sous 15MB</p>
+              <p className="text-xs text-slate-500 mb-3">PNG, JPEG sous 5MB</p>
               <div className="flex gap-2">
                 <button
                   type="button"

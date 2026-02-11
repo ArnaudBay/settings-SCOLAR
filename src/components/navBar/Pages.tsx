@@ -12,8 +12,8 @@ export const Pages = () => {
       <div className="shrink-0">
         <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
       </div>
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-8">
+      <div className="flex-2 overflow-y-auto">
+        <div className="p-8 w-full">
           {activeTab === 'infos-generales' && <InfosGenerales />}
           {activeTab === 'structure-academique' && <StructureAcademique />}
         </div>

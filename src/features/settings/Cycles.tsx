@@ -6,6 +6,7 @@ export const Cycles = () => {
   const [cycles] = useState<Cycle[]>([
     { id: '1', nom: 'Cycle Primaire', description: 'Cycle d\'enseignement primaire', anneeScolaireId: '1' },
     { id: '2', nom: 'Cycle Secondaire', description: 'Cycle d\'enseignement secondaire', anneeScolaireId: '1' },
+    { id: '3', nom: 'Universitaire', description: 'Système LMD', anneeScolaireId: '3' },
   ]);
 
   return (

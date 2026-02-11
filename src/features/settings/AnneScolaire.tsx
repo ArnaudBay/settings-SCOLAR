@@ -4,7 +4,8 @@ import type { AnneeScolaire } from '../../types';
 
 export const AnneScolaire = () => {
   const [anneesScolaires] = useState<AnneeScolaire[]>([
-    { id: '1', nom: '2024-2025', dateDebut: '2024-09-01', dateFin: '2025-06-30', estActive: true },
+    { id: '1', nom: '2024-2025', dateDebut: '2024-09-01', dateFin: '2025-06-30', estActive: false },
+    { id: '2', nom: '2025-2026', dateDebut: '2025-09-25', dateFin: '2026-06-30', estActive: true },
   ]);
 
   return (

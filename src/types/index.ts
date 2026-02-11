@@ -42,5 +42,9 @@ export interface Classe {
   filiereId: string;
   effectif?: number;
 }
+export interface SidebarProps {
+  activeTab: SettingsTab;
+  onTabChange: (tab: SettingsTab) => void;
+}
 
-export type SettingsTab = 'infos-generales' | 'structure-academique';
+export type SettingsTab = 'infos-generales'|'structure-academique';
