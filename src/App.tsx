@@ -1,17 +1,7 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { Pages } from './components/navBar/Pages'
 
 function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    
-      <div>
-        <h1 className='text-3xl font-bold underline'>SCOLAR SETTINGS </h1>
-    </div>
-  )
+  return <Pages />
 }
 
 export default App
