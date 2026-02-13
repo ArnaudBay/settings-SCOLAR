@@ -41,8 +41,8 @@ export const InfosGenerales = () => {
 
   return (
     <div className="max-w-4xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">Informations générales</h1>
+      <div className="mb-8 flex flex-col gap-2">
+        <h1 className="text-2xl font-bold text-slate-900 ">Informations générales</h1>
         <p className="text-slate-600 mt-1">
           Informations et activités en temps réel de votre établissement.
         </p>
