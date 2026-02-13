@@ -1,90 +1,111 @@
 import { useState } from 'react';
 import { FiPlus, FiEdit2, FiTrash2, FiX } from 'react-icons/fi';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import type { Classe, Filiere } from '../../types';
 import classIcon from '../../assets/images/class.svg';
 
-const classeSchema = z.object({
-  nom: z.string().min(1, 'Le nom est requis'),
-  description: z.string().optional(),
-  filiereId: z.string().min(1, 'La filière est requise'),
-  effectif: z.string().optional(),
-});
-
-type ClasseFormData = z.infer<typeof classeSchema>;
-
 export const Classes = () => {
-  // Données mockées pour les filières - à remplacer par un vrai état global ou API
+  // Liste des filières disponibles (normalement viendrait d'une API)
   const [filieres] = useState<Filiere[]>([
     { id: '1', nom: 'Générale', description: 'Filière générale', cycleId: '2' },
     { id: '2', nom: 'Technique', description: 'Filière technique', cycleId: '2' },
   ]);
 
+  // Liste des classes
   const [classes, setClasses] = useState<Classe[]>([
     { id: '1', nom: '6ème A', description: 'Classe de 6ème', filiereId: '1', effectif: 25 },
     { id: '2', nom: '5ème B', description: 'Classe de 5ème', filiereId: '1', effectif: 28 },
     { id: '3', nom: "Première année", description: "Première année de l'enseignement secondaire", filiereId: '2', effectif: 15 },
   ]);
+
+  // États pour gérer les modals (fenêtres popup)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    setValue,
-  } = useForm<ClasseFormData>({
-    resolver: zodResolver(classeSchema),
-    defaultValues: {
-      nom: '',
-      description: '',
-      filiereId: '',
-      effectif: '',
-    },
-  });
+  // États pour les champs du formulaire
+  const [nom, setNom] = useState('');
+  const [description, setDescription] = useState('');
+  const [filiereId, setFiliereId] = useState('');
+  const [effectif, setEffectif] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
+  // Fonction pour ouvrir le modal d'ajout
   const openAddModal = () => {
     setEditingId(null);
-    reset({ nom: '', description: '', filiereId: filieres[0]?.id || '', effectif: '' });
+    setNom('');
+    setDescription('');
+    setFiliereId(filieres[0]?.id || '');
+    setEffectif('');
+    setErrorMessage('');
     setIsModalOpen(true);
   };
 
+  // Fonction pour ouvrir le modal de modification
   const openEditModal = (classe: Classe) => {
     setEditingId(classe.id);
-    setValue('nom', classe.nom);
-    setValue('description', classe.description || '');
-    setValue('filiereId', classe.filiereId);
-    setValue('effectif', classe.effectif?.toString() || '');
+    setNom(classe.nom);
+    setDescription(classe.description || '');
+    setFiliereId(classe.filiereId);
+    setEffectif(classe.effectif?.toString() || '');
+    setErrorMessage('');
     setIsModalOpen(true);
   };
 
-  const onSubmit = (data: ClasseFormData) => {
+  // Fonction pour valider le formulaire
+  const validateForm = () => {
+    if (!nom.trim()) {
+      setErrorMessage('Le nom est requis');
+      return false;
+    }
+    if (!filiereId) {
+      setErrorMessage('La filière est requise');
+      return false;
+    }
+    setErrorMessage('');
+    return true;
+  };
+
+  // Fonction appelée quand on soumet le formulaire
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault(); // Empêche le rechargement de la page
+
+    // Vérifier que les champs sont valides
+    if (!validateForm()) {
+      return;
+    }
+
+    // Préparer les données de la classe
     const classeData: Omit<Classe, 'id'> = {
-      nom: data.nom,
-      description: data.description,
-      filiereId: data.filiereId,
-      effectif: data.effectif && data.effectif !== '' ? Number(data.effectif) : undefined,
+      nom: nom.trim(),
+      description: description.trim() || undefined,
+      filiereId: filiereId,
+      effectif: effectif ? Number(effectif) : undefined,
     };
 
     if (editingId) {
+      // Modifier une classe existante
       setClasses((prev) =>
         prev.map((item) => (item.id === editingId ? { ...item, ...classeData } : item))
       );
     } else {
+      // Ajouter une nouvelle classe
       const newClasse: Classe = {
-        id: crypto.randomUUID(),
+        id: crypto.randomUUID(), // Génère un ID unique
         ...classeData,
       };
       setClasses((prev) => [...prev, newClasse]);
     }
+
+    // Fermer le modal et réinitialiser le formulaire
     setIsModalOpen(false);
-    reset();
+    setNom('');
+    setDescription('');
+    setFiliereId('');
+    setEffectif('');
+    setErrorMessage('');
   };
 
+  // Fonction pour supprimer une classe
   const handleDelete = () => {
     if (deleteId) {
       setClasses((prev) => prev.filter((item) => item.id !== deleteId));
@@ -92,12 +113,15 @@ export const Classes = () => {
     }
   };
 
+  // Fonction pour trouver le nom d'une filière à partir de son ID
   const getFiliereNom = (id: string) => {
-    return filieres.find((f) => f.id === id)?.nom || '-';
+    const filiere = filieres.find((f) => f.id === id);
+    return filiere ? filiere.nom : '-';
   };
 
   return (
     <div>
+      {/* En-tête avec titre et bouton d'ajout */}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-lg font-semibold text-slate-900">Classes</h2>
@@ -114,6 +138,7 @@ export const Classes = () => {
         </button>
       </div>
 
+      {/* Tableau des classes */}
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
         <table className="w-full">
           <thead className="bg-slate-50 border-b border-slate-200">
@@ -175,9 +200,9 @@ export const Classes = () => {
         </table>
       </div>
 
-      {/* Modal Ajout/Modification */}
+      {/* Modal pour ajouter/modifier une classe */}
       {isModalOpen && (
-        <div className="fixed inset-0 backdrop-blur-xs bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-slate-900">
@@ -190,38 +215,43 @@ export const Classes = () => {
                 <FiX className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Champ Nom */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Nom *
                 </label>
                 <input
                   type="text"
-                  {...register('nom')}
+                  value={nom}
+                  onChange={(e) => setNom(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="6ème A"
                 />
-                {errors.nom && (
-                  <p className="mt-1 text-sm text-red-600">{errors.nom.message}</p>
-                )}
               </div>
+
+              {/* Champ Description */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Description
                 </label>
                 <textarea
-                  {...register('description')}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                   rows={3}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Description de la classe"
                 />
               </div>
+
+              {/* Champ Filière */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Filière *
                 </label>
                 <select
-                  {...register('filiereId')}
+                  value={filiereId}
+                  onChange={(e) => setFiliereId(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Sélectionner une filière</option>
@@ -231,25 +261,29 @@ export const Classes = () => {
                     </option>
                   ))}
                 </select>
-                {errors.filiereId && (
-                  <p className="mt-1 text-sm text-red-600">{errors.filiereId.message}</p>
-                )}
               </div>
+
+              {/* Champ Effectif */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Effectif
                 </label>
                 <input
                   type="number"
-                  {...register('effectif')}
+                  value={effectif}
+                  onChange={(e) => setEffectif(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="25"
                   min="0"
                 />
-                {errors.effectif && (
-                  <p className="mt-1 text-sm text-red-600">{errors.effectif.message}</p>
-                )}
               </div>
+
+              {/* Message d'erreur */}
+              {errorMessage && (
+                <p className="text-sm text-red-600">{errorMessage}</p>
+              )}
+
+              {/* Boutons */}
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button"
@@ -270,9 +304,9 @@ export const Classes = () => {
         </div>
       )}
 
-      {/* Modal Suppression */}
+      {/* Modal pour confirmer la suppression */}
       {deleteId && (
-        <div className="fixed inset-0 backdrop-blur-xs bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">
               Supprimer la classe

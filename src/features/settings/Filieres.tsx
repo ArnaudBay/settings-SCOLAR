@@ -1,79 +1,105 @@
 import { useState } from 'react';
 import { FiPlus, FiEdit2, FiTrash2, FiUsers, FiX } from 'react-icons/fi';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import type { Filiere, Cycle } from '../../types';
 
-const filiereSchema = z.object({
-  nom: z.string().min(1, 'Le nom est requis'),
-  description: z.string().optional(),
-  cycleId: z.string().min(1, 'Le cycle est requis'),
-});
-
-type FiliereFormData = z.infer<typeof filiereSchema>;
-
 export const Filieres = () => {
-  // Données mockées pour les cycles - à remplacer par un vrai état global ou API
+  // Liste des cycles disponibles (normalement viendrait d'une API)
   const [cycles] = useState<Cycle[]>([
     { id: '1', nom: 'Cycle Primaire', description: 'Cycle d\'enseignement primaire', anneeScolaireId: '1' },
     { id: '2', nom: 'Cycle Secondaire', description: 'Cycle d\'enseignement secondaire', anneeScolaireId: '1' },
     { id: '3', nom: 'Universitaire', description: 'Système LMD', anneeScolaireId: '2' },
   ]);
 
+  // Liste des filières
   const [filieres, setFilieres] = useState<Filiere[]>([
     { id: '1', nom: 'Générale', description: 'Filière générale', cycleId: '2' },
     { id: '2', nom: 'Technique', description: 'Filière technique', cycleId: '2' },
   ]);
+
+  // États pour gérer les modals (fenêtres popup)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    setValue,
-  } = useForm<FiliereFormData>({
-    resolver: zodResolver(filiereSchema),
-    defaultValues: {
-      nom: '',
-      description: '',
-      cycleId: '',
-    },
-  });
+  // États pour les champs du formulaire
+  const [nom, setNom] = useState('');
+  const [description, setDescription] = useState('');
+  const [cycleId, setCycleId] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
+  // Fonction pour ouvrir le modal d'ajout
   const openAddModal = () => {
     setEditingId(null);
-    reset({ nom: '', description: '', cycleId: cycles[0]?.id || '' });
+    setNom('');
+    setDescription('');
+    setCycleId(cycles[0]?.id || '');
+    setErrorMessage('');
     setIsModalOpen(true);
   };
 
+  // Fonction pour ouvrir le modal de modification
   const openEditModal = (filiere: Filiere) => {
     setEditingId(filiere.id);
-    setValue('nom', filiere.nom);
-    setValue('description', filiere.description || '');
-    setValue('cycleId', filiere.cycleId);
+    setNom(filiere.nom);
+    setDescription(filiere.description || '');
+    setCycleId(filiere.cycleId);
+    setErrorMessage('');
     setIsModalOpen(true);
   };
 
-  const onSubmit = (data: FiliereFormData) => {
+  // Fonction pour valider le formulaire
+  const validateForm = () => {
+    if (!nom.trim()) {
+      setErrorMessage('Le nom est requis');
+      return false;
+    }
+    if (!cycleId) {
+      setErrorMessage('Le cycle est requis');
+      return false;
+    }
+    setErrorMessage('');
+    return true;
+  };
+
+  // Fonction appelée quand on soumet le formulaire
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault(); // Empêche le rechargement de la page
+
+    // Vérifier que les champs sont valides
+    if (!validateForm()) {
+      return;
+    }
+
+    // Préparer les données de la filière
+    const filiereData: Omit<Filiere, 'id'> = {
+      nom: nom.trim(),
+      description: description.trim() || undefined,
+      cycleId: cycleId,
+    };
+
     if (editingId) {
+      // Modifier une filière existante
       setFilieres((prev) =>
-        prev.map((item) => (item.id === editingId ? { ...item, ...data } : item))
+        prev.map((item) => (item.id === editingId ? { ...item, ...filiereData } : item))
       );
     } else {
+      // Ajouter une nouvelle filière
       const newFiliere: Filiere = {
-        id: crypto.randomUUID(),
-        ...data,
+        id: crypto.randomUUID(), // Génère un ID unique
+        ...filiereData,
       };
       setFilieres((prev) => [...prev, newFiliere]);
     }
+
+    // Fermer le modal et réinitialiser le formulaire
     setIsModalOpen(false);
-    reset();
+    setNom('');
+    setDescription('');
+    setCycleId('');
+    setErrorMessage('');
   };
 
+  // Fonction pour supprimer une filière
   const handleDelete = () => {
     if (deleteId) {
       setFilieres((prev) => prev.filter((item) => item.id !== deleteId));
@@ -81,12 +107,15 @@ export const Filieres = () => {
     }
   };
 
+  // Fonction pour trouver le nom d'un cycle à partir de son ID
   const getCycleNom = (id: string) => {
-    return cycles.find((c) => c.id === id)?.nom || '-';
+    const cycle = cycles.find((c) => c.id === id);
+    return cycle ? cycle.nom : '-';
   };
 
   return (
     <div>
+      {/* En-tête avec titre et bouton d'ajout */}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-lg font-semibold text-slate-900">Filières</h2>
@@ -103,6 +132,7 @@ export const Filieres = () => {
         </button>
       </div>
 
+      {/* Tableau des filières */}
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
         <table className="w-full">
           <thead className="bg-slate-50 border-b border-slate-200">
@@ -158,9 +188,9 @@ export const Filieres = () => {
         </table>
       </div>
 
-      {/* Modal Ajout/Modification */}
+      {/* Modal pour ajouter/modifier une filière */}
       {isModalOpen && (
-        <div className="fixed inset-0 backdrop-blur-xs bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-slate-900">
@@ -173,38 +203,43 @@ export const Filieres = () => {
                 <FiX className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Champ Nom */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Nom *
                 </label>
                 <input
                   type="text"
-                  {...register('nom')}
+                  value={nom}
+                  onChange={(e) => setNom(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Générale"
                 />
-                {errors.nom && (
-                  <p className="mt-1 text-sm text-red-600">{errors.nom.message}</p>
-                )}
               </div>
+
+              {/* Champ Description */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Description
                 </label>
                 <textarea
-                  {...register('description')}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                   rows={3}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Description de la filière"
                 />
               </div>
+
+              {/* Champ Cycle */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Cycle *
                 </label>
                 <select
-                  {...register('cycleId')}
+                  value={cycleId}
+                  onChange={(e) => setCycleId(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Sélectionner un cycle</option>
@@ -214,10 +249,14 @@ export const Filieres = () => {
                     </option>
                   ))}
                 </select>
-                {errors.cycleId && (
-                  <p className="mt-1 text-sm text-red-600">{errors.cycleId.message}</p>
-                )}
               </div>
+
+              {/* Message d'erreur */}
+              {errorMessage && (
+                <p className="text-sm text-red-600">{errorMessage}</p>
+              )}
+
+              {/* Boutons */}
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button"
@@ -238,9 +277,9 @@ export const Filieres = () => {
         </div>
       )}
 
-      {/* Modal Suppression */}
+      {/* Modal pour confirmer la suppression */}
       {deleteId && (
-        <div className="fixed inset-0 backdrop-blur-xs bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">
               Supprimer la filière

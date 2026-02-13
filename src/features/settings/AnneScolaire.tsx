@@ -1,87 +1,128 @@
 import { useState } from 'react';
 import { FiPlus, FiEdit2, FiTrash2, FiCalendar, FiX } from 'react-icons/fi';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import type { AnneeScolaire } from '../../types';
 
-const anneeScolaireSchema = z.object({
-  nom: z.string().min(1, 'Le nom est requis'),
-  dateDebut: z.string().min(1, 'La date de début est requise'),
-  dateFin: z.string().min(1, 'La date de fin est requise'),
-  estActive: z.boolean(),
-}).refine((data) => new Date(data.dateDebut) < new Date(data.dateFin), {
-  message: 'La date de fin doit être postérieure à la date de début',
-  path: ['dateFin'],
-});
-
-type AnneeScolaireFormData = z.infer<typeof anneeScolaireSchema>;
-
 export const AnneScolaire = () => {
+  // Liste des années scolaires
   const [anneesScolaires, setAnneesScolaires] = useState<AnneeScolaire[]>([
     { id: '1', nom: '2024-2025', dateDebut: '2024-09-01', dateFin: '2025-06-30', estActive: false },
     { id: '2', nom: '2025-2026', dateDebut: '2025-09-25', dateFin: '2026-06-30', estActive: true },
   ]);
+
+  // États pour gérer les modals (fenêtres popup)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    setValue,
-  } = useForm<AnneeScolaireFormData>({
-    resolver: zodResolver(anneeScolaireSchema),
-    defaultValues: {
-      nom: '',
-      dateDebut: '',
-      dateFin: '',
-      estActive: false,
-    },
-  });
+  // États pour les champs du formulaire
+  const [nom, setNom] = useState('');
+  const [dateDebut, setDateDebut] = useState('');
+  const [dateFin, setDateFin] = useState('');
+  const [estActive, setEstActive] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
+  // Fonction pour ouvrir le modal d'ajout
   const openAddModal = () => {
     setEditingId(null);
-    reset({ nom: '', dateDebut: '', dateFin: '', estActive: false });
+    setNom('');
+    setDateDebut('');
+    setDateFin('');
+    setEstActive(false);
+    setErrorMessage('');
     setIsModalOpen(true);
   };
 
+  // Fonction pour ouvrir le modal de modification
   const openEditModal = (annee: AnneeScolaire) => {
     setEditingId(annee.id);
-    setValue('nom', annee.nom);
-    setValue('dateDebut', annee.dateDebut);
-    setValue('dateFin', annee.dateFin);
-    setValue('estActive', annee.estActive);
+    setNom(annee.nom);
+    setDateDebut(annee.dateDebut);
+    setDateFin(annee.dateFin);
+    setEstActive(annee.estActive);
+    setErrorMessage('');
     setIsModalOpen(true);
   };
 
-  const onSubmit = (data: AnneeScolaireFormData) => {
+  // Fonction pour valider le formulaire
+  const validateForm = () => {
+    if (!nom.trim()) {
+      setErrorMessage('Le nom est requis');
+      return false;
+    }
+    if (!dateDebut) {
+      setErrorMessage('La date de début est requise');
+      return false;
+    }
+    if (!dateFin) {
+      setErrorMessage('La date de fin est requise');
+      return false;
+    }
+    // Vérifier que la date de fin est après la date de début
+    if (new Date(dateDebut) >= new Date(dateFin)) {
+      setErrorMessage('La date de fin doit être postérieure à la date de début');
+      return false;
+    }
+    setErrorMessage('');
+    return true;
+  };
+
+  // Fonction appelée quand on soumet le formulaire
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault(); // Empêche le rechargement de la page
+
+    // Vérifier que les champs sont valides
+    if (!validateForm()) {
+      return;
+    }
+
+    // Préparer les données de l'année scolaire
+    const anneeData: Omit<AnneeScolaire, 'id'> = {
+      nom: nom.trim(),
+      dateDebut: dateDebut,
+      dateFin: dateFin,
+      estActive: estActive,
+    };
+
     if (editingId) {
-      setAnneesScolaires((prev) =>
-        prev.map((item) =>
-          item.id === editingId
-            ? { ...item, ...data }
-            : { ...item, estActive: data.estActive ? false : item.estActive }
-        )
-      );
+      // Modifier une année scolaire existante
+      setAnneesScolaires((prev) => {
+        return prev.map((item) => {
+          if (item.id === editingId) {
+            return { ...item, ...anneeData };
+          }
+          // Si on active cette année, désactiver les autres
+          if (estActive) {
+            return { ...item, estActive: false };
+          }
+          return item;
+        });
+      });
     } else {
+      // Ajouter une nouvelle année scolaire
       const newAnnee: AnneeScolaire = {
-        id: crypto.randomUUID(),
-        ...data,
+        id: crypto.randomUUID(), // Génère un ID unique
+        ...anneeData,
       };
       setAnneesScolaires((prev) => {
-        if (data.estActive) {
-          return prev.map((item) => ({ ...item, estActive: false })).concat(newAnnee);
+        // Si on active cette année, désactiver toutes les autres
+        if (estActive) {
+          const desactivees = prev.map((item) => ({ ...item, estActive: false }));
+          return [...desactivees, newAnnee];
         }
         return [...prev, newAnnee];
       });
     }
+
+    // Fermer le modal et réinitialiser le formulaire
     setIsModalOpen(false);
-    reset();
+    setNom('');
+    setDateDebut('');
+    setDateFin('');
+    setEstActive(false);
+    setErrorMessage('');
   };
 
+  // Fonction pour supprimer une année scolaire
   const handleDelete = () => {
     if (deleteId) {
       setAnneesScolaires((prev) => prev.filter((item) => item.id !== deleteId));
@@ -91,6 +132,7 @@ export const AnneScolaire = () => {
 
   return (
     <div>
+      {/* En-tête avec titre et bouton d'ajout */}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-lg font-semibold text-slate-900">Années scolaires</h2>
@@ -107,6 +149,7 @@ export const AnneScolaire = () => {
         </button>
       </div>
 
+      {/* Tableau des années scolaires */}
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
         <table className="w-full">
           <thead className="bg-slate-50 border-b border-slate-200">
@@ -176,9 +219,9 @@ export const AnneScolaire = () => {
         </table>
       </div>
 
-      {/* Modal Ajout/Modification */}
+      {/* Modal pour ajouter/modifier une année scolaire */}
       {isModalOpen && (
-        <div className="fixed inset-0 backdrop-blur-xs bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-slate-900">
@@ -191,51 +234,53 @@ export const AnneScolaire = () => {
                 <FiX className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Champ Nom */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Nom *
                 </label>
                 <input
                   type="text"
-                  {...register('nom')}
+                  value={nom}
+                  onChange={(e) => setNom(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="2024-2025"
                 />
-                {errors.nom && (
-                  <p className="mt-1 text-sm text-red-600">{errors.nom.message}</p>
-                )}
               </div>
+
+              {/* Champ Date de début */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Date de début *
                 </label>
                 <input
                   type="date"
-                  {...register('dateDebut')}
+                  value={dateDebut}
+                  onChange={(e) => setDateDebut(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                {errors.dateDebut && (
-                  <p className="mt-1 text-sm text-red-600">{errors.dateDebut.message}</p>
-                )}
               </div>
+
+              {/* Champ Date de fin */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Date de fin *
                 </label>
                 <input
                   type="date"
-                  {...register('dateFin')}
+                  value={dateFin}
+                  onChange={(e) => setDateFin(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                {errors.dateFin && (
-                  <p className="mt-1 text-sm text-red-600">{errors.dateFin.message}</p>
-                )}
               </div>
+
+              {/* Case à cocher pour année active */}
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  {...register('estActive')}
+                  checked={estActive}
+                  onChange={(e) => setEstActive(e.target.checked)}
                   id="estActive"
                   className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
                 />
@@ -243,6 +288,13 @@ export const AnneScolaire = () => {
                   Année scolaire active
                 </label>
               </div>
+
+              {/* Message d'erreur */}
+              {errorMessage && (
+                <p className="text-sm text-red-600">{errorMessage}</p>
+              )}
+
+              {/* Boutons */}
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button"
@@ -263,9 +315,9 @@ export const AnneScolaire = () => {
         </div>
       )}
 
-      {/* Modal Suppression */}
+      {/* Modal pour confirmer la suppression */}
       {deleteId && (
-        <div className="fixed inset-0 backdrop-blur-xs bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">
               Supprimer l'année scolaire

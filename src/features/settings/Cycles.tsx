@@ -1,79 +1,107 @@
 import { useState } from 'react';
 import { FiPlus, FiEdit2, FiTrash2, FiBook, FiX } from 'react-icons/fi';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import type { Cycle, AnneeScolaire } from '../../types';
 
-const cycleSchema = z.object({
-  nom: z.string().min(1, 'Le nom est requis'),
-  description: z.string().optional(),
-  anneeScolaireId: z.string().min(1, 'L\'année scolaire est requise'),
-});
-
-type CycleFormData = z.infer<typeof cycleSchema>;
-
 export const Cycles = () => {
-  // Données mockées pour les années scolaires - à remplacer par un vrai état global ou API
+  // Liste des années scolaires disponibles (normalement viendrait d'une API)
   const [anneesScolaires] = useState<AnneeScolaire[]>([
     { id: '1', nom: '2024-2025', dateDebut: '2024-09-01', dateFin: '2025-06-30', estActive: false },
     { id: '2', nom: '2025-2026', dateDebut: '2025-09-25', dateFin: '2026-06-30', estActive: true },
   ]);
 
+  // Liste des cycles
   const [cycles, setCycles] = useState<Cycle[]>([
     { id: '1', nom: 'Cycle Primaire', description: 'Cycle d\'enseignement primaire', anneeScolaireId: '1' },
     { id: '2', nom: 'Cycle Secondaire', description: 'Cycle d\'enseignement secondaire', anneeScolaireId: '1' },
     { id: '3', nom: 'Universitaire', description: 'Système LMD', anneeScolaireId: '2' },
   ]);
+
+  // États pour gérer les modals (fenêtres popup)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    setValue,
-  } = useForm<CycleFormData>({
-    resolver: zodResolver(cycleSchema),
-    defaultValues: {
-      nom: '',
-      description: '',
-      anneeScolaireId: '',
-    },
-  });
+  // États pour les champs du formulaire
+  const [nom, setNom] = useState('');
+  const [description, setDescription] = useState('');
+  const [anneeScolaireId, setAnneeScolaireId] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
+  // Fonction pour ouvrir le modal d'ajout
   const openAddModal = () => {
     setEditingId(null);
-    reset({ nom: '', description: '', anneeScolaireId: anneesScolaires.find(a => a.estActive)?.id || '' });
+    // Trouver l'année scolaire active par défaut
+    const anneeActive = anneesScolaires.find((a) => a.estActive);
+    setNom('');
+    setDescription('');
+    setAnneeScolaireId(anneeActive?.id || '');
+    setErrorMessage('');
     setIsModalOpen(true);
   };
 
+  // Fonction pour ouvrir le modal de modification
   const openEditModal = (cycle: Cycle) => {
     setEditingId(cycle.id);
-    setValue('nom', cycle.nom);
-    setValue('description', cycle.description || '');
-    setValue('anneeScolaireId', cycle.anneeScolaireId);
+    setNom(cycle.nom);
+    setDescription(cycle.description || '');
+    setAnneeScolaireId(cycle.anneeScolaireId);
+    setErrorMessage('');
     setIsModalOpen(true);
   };
 
-  const onSubmit = (data: CycleFormData) => {
+  // Fonction pour valider le formulaire
+  const validateForm = () => {
+    if (!nom.trim()) {
+      setErrorMessage('Le nom est requis');
+      return false;
+    }
+    if (!anneeScolaireId) {
+      setErrorMessage('L\'année scolaire est requise');
+      return false;
+    }
+    setErrorMessage('');
+    return true;
+  };
+
+  // Fonction appelée quand on soumet le formulaire
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault(); // Empêche le rechargement de la page
+
+    // Vérifier que les champs sont valides
+    if (!validateForm()) {
+      return;
+    }
+
+    // Préparer les données du cycle
+    const cycleData: Omit<Cycle, 'id'> = {
+      nom: nom.trim(),
+      description: description.trim() || undefined,
+      anneeScolaireId: anneeScolaireId,
+    };
+
     if (editingId) {
+      // Modifier un cycle existant
       setCycles((prev) =>
-        prev.map((item) => (item.id === editingId ? { ...item, ...data } : item))
+        prev.map((item) => (item.id === editingId ? { ...item, ...cycleData } : item))
       );
     } else {
+      // Ajouter un nouveau cycle
       const newCycle: Cycle = {
-        id: crypto.randomUUID(),
-        ...data,
+        id: crypto.randomUUID(), // Génère un ID unique
+        ...cycleData,
       };
       setCycles((prev) => [...prev, newCycle]);
     }
+
+    // Fermer le modal et réinitialiser le formulaire
     setIsModalOpen(false);
-    reset();
+    setNom('');
+    setDescription('');
+    setAnneeScolaireId('');
+    setErrorMessage('');
   };
 
+  // Fonction pour supprimer un cycle
   const handleDelete = () => {
     if (deleteId) {
       setCycles((prev) => prev.filter((item) => item.id !== deleteId));
@@ -81,12 +109,15 @@ export const Cycles = () => {
     }
   };
 
+  // Fonction pour trouver le nom d'une année scolaire à partir de son ID
   const getAnneeScolaireNom = (id: string) => {
-    return anneesScolaires.find((a) => a.id === id)?.nom || '-';
+    const annee = anneesScolaires.find((a) => a.id === id);
+    return annee ? annee.nom : '-';
   };
 
   return (
     <div>
+      {/* En-tête avec titre et bouton d'ajout */}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-lg font-semibold text-slate-900">Cycles</h2>
@@ -103,6 +134,7 @@ export const Cycles = () => {
         </button>
       </div>
 
+      {/* Tableau des cycles */}
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
         <table className="w-full">
           <thead className="bg-slate-50 border-b border-slate-200">
@@ -158,9 +190,9 @@ export const Cycles = () => {
         </table>
       </div>
 
-      {/* Modal Ajout/Modification */}
+      {/* Modal pour ajouter/modifier un cycle */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-opacity-50 backdrop-blur-xs flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-slate-900">
@@ -173,38 +205,43 @@ export const Cycles = () => {
                 <FiX className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Champ Nom */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Nom *
                 </label>
                 <input
                   type="text"
-                  {...register('nom')}
+                  value={nom}
+                  onChange={(e) => setNom(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Cycle Primaire"
                 />
-                {errors.nom && (
-                  <p className="mt-1 text-sm text-red-600">{errors.nom.message}</p>
-                )}
               </div>
+
+              {/* Champ Description */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Description
                 </label>
                 <textarea
-                  {...register('description')}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                   rows={3}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Description du cycle"
                 />
               </div>
+
+              {/* Champ Année scolaire */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Année scolaire *
                 </label>
                 <select
-                  {...register('anneeScolaireId')}
+                  value={anneeScolaireId}
+                  onChange={(e) => setAnneeScolaireId(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Sélectionner une année scolaire</option>
@@ -214,10 +251,14 @@ export const Cycles = () => {
                     </option>
                   ))}
                 </select>
-                {errors.anneeScolaireId && (
-                  <p className="mt-1 text-sm text-red-600">{errors.anneeScolaireId.message}</p>
-                )}
               </div>
+
+              {/* Message d'erreur */}
+              {errorMessage && (
+                <p className="text-sm text-red-600">{errorMessage}</p>
+              )}
+
+              {/* Boutons */}
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button"
@@ -238,9 +279,9 @@ export const Cycles = () => {
         </div>
       )}
 
-      {/* Modal Suppression */}
+      {/* Modal pour confirmer la suppression */}
       {deleteId && (
-        <div className="fixed inset-0 backdrop-blur-xs bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">
               Supprimer le cycle
