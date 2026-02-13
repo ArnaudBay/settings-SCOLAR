@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import type { SettingsTab } from '../../types';
 import { InfosGenerales } from '../../features/settings/InfosGenerales';
-import { StructureAcademique } from '../../features/settings/StructureAcademique';
+import { AnneScolaire } from '../../features/settings/AnneScolaire';
+import { Cycles } from '../../features/settings/Cycles';
+import { Filieres } from '../../features/settings/Filieres';
+import { Classes } from '../../features/settings/Classes';
 import { Sidebar } from './Sidebar';
 
 export const Pages = () => {
@@ -15,7 +18,10 @@ export const Pages = () => {
       <div className="flex-2 overflow-y-auto">
         <div className="p-8 w-full">
           {activeTab === 'infos-generales' && <InfosGenerales />}
-          {activeTab === 'structure-academique' && <StructureAcademique />}
+          {activeTab === 'annees-scolaires' && <AnneScolaire />}
+          {activeTab === 'cycles' && <Cycles />}
+          {activeTab === 'filieres' && <Filieres />}
+          {activeTab === 'classes' && <Classes />}
         </div>
       </div>
     </div>

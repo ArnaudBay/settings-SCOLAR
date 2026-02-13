@@ -1,6 +1,9 @@
-import { FiBook } from 'react-icons/fi';
 import type { SettingsTab } from '../../types';
-import account from '../../assets/images/account.svg'
+import account from '../../assets/images/account.svg';
+import calendar from '../../assets/images/calendar.svg';
+import school from '../../assets/images/school.svg';
+import filiere from '../../assets/images/filiere.svg';
+import classIcon from '../../assets/images/class.svg';
 import type { SidebarProps } from '../../types';
 
 
@@ -10,15 +13,17 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
   ];
 
   const structureItems = [
-    { id: 'structure-academique' as SettingsTab, label: 'Structure académique', icon: FiBook, isSvg: false },
+    { id: 'annees-scolaires' as SettingsTab, label: 'Années scolaires', icon: calendar, isSvg: true },
+    { id: 'cycles' as SettingsTab, label: 'Cycles', icon: school, isSvg: true },
+    { id: 'filieres' as SettingsTab, label: 'Filières', icon: filiere, isSvg: true },
+    { id: 'classes' as SettingsTab, label: 'Classes', icon: classIcon, isSvg: true },
   ];
 
-  const renderIcon = (icon: typeof account | typeof FiBook, isSvg: boolean) => {
+  const renderIcon = (icon: string, isSvg: boolean) => {
     if (isSvg) {
-      return <img src={icon as string} alt="" className="w-full h-full" />;
+      return <img src={icon} alt="" className="w-5 h-5" />;
     }
-    const IconComponent = icon as typeof FiBook;
-    return <IconComponent className="w-full h-9" />;
+    return null;
   };
 
   return (

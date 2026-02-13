@@ -47,4 +47,4 @@ export interface SidebarProps {
   onTabChange: (tab: SettingsTab) => void;
 }
 
-export type SettingsTab = 'infos-generales'|'structure-academique';
+export type SettingsTab = 'infos-generales' | 'annees-scolaires' | 'cycles' | 'filieres' | 'classes';
